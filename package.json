@@ -1,0 +1,10 @@
+{
+  "name": "outreach-automation-server",
+  "version": "1.0.0",
+  "description": "Node.js outreach automation demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

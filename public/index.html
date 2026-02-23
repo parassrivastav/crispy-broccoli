@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Outreach Automation Console</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:24px;background:#0f172a;color:#e2e8f0}
+    .card{background:#111827;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:16px}
+    textarea,input,select,button{width:100%;padding:10px;margin-top:8px;background:#0b1220;color:#e2e8f0;border:1px solid #334155;border-radius:8px}
+    button{cursor:pointer;background:#1d4ed8}
+    pre{white-space:pre-wrap;background:#020617;padding:12px;border-radius:8px;max-height:350px;overflow:auto}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  </style>
+</head>
+<body>
+  <h1>Outreach Automation Console</h1>
+  <div class="row">
+    <div class="card">
+      <h3>1) Upload contacts CSV</h3>
+      <p>Headers: <code>name,email,company,impressive</code> (impressive optional)</p>
+      <textarea id="csv" rows="8">name,email,company,impressive
+Alice,alice@example.com,North Estates,Won regional growth award in 2024
+Bob,bob@example.com,Ocean Realty,</textarea>
+      <button onclick="uploadCsv()">Upload CSV</button>
+    </div>
+
+    <div class="card">
+      <h3>2) Run workflow actions</h3>
+      <input id="contactId" placeholder="contact id from state" />
+      <select id="tpl"><option value="type1">Type 1</option><option value="type2">Type 2</option></select>
+      <button onclick="generateEmail()">Generate Email</button>
+      <button onclick="sendEmail()">Send Email (scheduled + thread + follow-up)</button>
+      <button onclick="inboundReply()">Simulate Inbound Reply</button>
+      <button onclick="confirmMeeting()">Confirm Meeting + Google Meet</button>
+      <button onclick="triggerReminder()">Trigger 1-hour Reminder</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>State / logs</h3>
+    <button onclick="refreshState()">Refresh state</button>
+    <pre id="out"></pre>
+  </div>
+
+<script>
+async function api(path, method='GET', body){
+  const res = await fetch(path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  return res.json();
+}
+
+async function uploadCsv(){
+  const data = await api('/api/contacts/upload','POST',{csv:document.getElementById('csv').value});
+  out(data);
+}
+async function generateEmail(){
+  const data = await api('/api/emails/generate','POST',{contactId:contactId.value, templateType:tpl.value});
+  out(data);
+}
+async function sendEmail(){
+  const data = await api('/api/emails/send','POST',{contactId:contactId.value});
+  out(data);
+}
+async function inboundReply(){
+  const data = await api('/api/replies/inbound','POST',{contactId:contactId.value, body:'Sounds good, can you share availability and testimonials?'});
+  out(data);
+}
+async function confirmMeeting(){
+  const when = new Date(Date.now()+72*60*60*1000).toISOString();
+  const data = await api('/api/meetings/confirm','POST',{contactId:contactId.value, chosenTime:when});
+  out(data);
+}
+async function triggerReminder(){
+  const data = await api('/api/reminders/trigger','POST',{contactId:contactId.value, includeTrustLinks:true});
+  out(data);
+}
+async function refreshState(){
+  const data = await api('/api/state');
+  out(data);
+}
+function out(data){document.getElementById('out').textContent = JSON.stringify(data,null,2)}
+refreshState();
+</script>
+</body>
+</html>
