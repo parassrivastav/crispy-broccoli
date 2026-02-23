@@ -1,0 +1,11 @@
+	1.	Upload contacts – CSV with name, email, company, and optional impressive fact.
+	2.	Email generation – AI fills fixed templates (Type 1 or Type 2) with the contact info.
+	3.	Send emails – Automatically from custom domain, using safe delays (90–120 sec) and scheduled windows (8:30–11 AM & 1–3 PM, Tue–Fri).
+	4.	Threaded conversations – All emails and follow-ups stay in the same thread.
+	5.	Follow-ups – Automatically sent 3 days after the first email if no reply.
+	6.	Monitor replies – AI analyzes incoming messages and drafts human-like responses in the same thread, maintaining tone and style.
+	7.	Meeting proposals – AI checks calendar availability, proposes 2 specific times (no booking links), adjusts for weekends, and follows up if no reply within 24 hours.
+	8.	Meeting confirmation – Once agreed: create Google Meet, send invite, then send short confirmation email 2–3 minutes later in the same thread.
+	9.	1-hour reminder – Automated reminder with Google Meet link and optional trust links (website, testimonials, Instagram) if triggered.
+	10.	Conditional company info – Links only sent when prospect asks or shows interest.
+	11.	Logging – Track email sends, replies, follow-ups, meetings, reminders, and conversation state.
