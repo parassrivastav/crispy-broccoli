@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wilhelm Outreach Console (CSV → Draft → Send)</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#111827;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:#243044;
+      --accent:#60a5fa;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 15% 10%, rgba(96,165,250,.15), transparent),
+                  radial-gradient(900px 600px at 90% 20%, rgba(52,211,153,.10), transparent),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:22px}
+    .topbar{
+      display:flex;gap:14px;align-items:center;justify-content:space-between;
+      padding:16px 16px;border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(17,24,39,.88), rgba(15,23,42,.88));
+      border-radius:16px; box-shadow: var(--shadow);
+      position:sticky; top:10px; z-index:10;
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:40px;height:40px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(96,165,250,.9), rgba(52,211,153,.75));
+      box-shadow: 0 10px 30px rgba(96,165,250,.15);
+    }
+    .title{line-height:1.1}
+    .title h1{margin:0;font-size:16px;font-weight:800;letter-spacing:.2px}
+    .title div{margin-top:4px;font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .btn{
+      border:1px solid var(--border);
+      background: rgba(17,24,39,.7);
+      color:var(--text);
+      padding:10px 12px;border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s ease, border-color .15s ease, background .15s ease;
+      font-weight:700;font-size:13px;
+    }
+    .btn:hover{border-color:rgba(96,165,250,.7);background:rgba(17,24,39,.95)}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{border-color:rgba(96,165,250,.65);background:rgba(96,165,250,.12)}
+    .btn.good{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.12)}
+    .btn.bad{border-color:rgba(251,113,133,.6);background:rgba(251,113,133,.12)}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      font-size:12px;color:var(--muted);
+      padding:8px 10px;border:1px solid var(--border);border-radius:999px;
+      background: rgba(15,23,42,.55);
+    }
+    .grid{
+      display:grid;grid-template-columns: 1.2fr .8fr; gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      .topbar{position:static}
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: rgba(17,24,39,.72);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .head{
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      background: rgba(15,23,42,.5);
+    }
+    .card .head h2{margin:0;font-size:13px;font-weight:900;letter-spacing:.2px}
+    .card .head .sub{font-size:12px;color:var(--muted)}
+    .card .body{padding:14px 16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type="text"], input[type="url"], input[type="number"], textarea, select{
+      width:100%;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.6);
+      color:var(--text);
+      padding:10px 10px;
+      outline:none;
+    }
+    textarea{min-height:120px;resize:vertical}
+    .field{flex:1; min-width: 210px}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
+    .tableWrap{overflow:auto;border-radius:14px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse;min-width: 900px;background: rgba(15,23,42,.4)}
+    th, td{padding:10px 10px;border-bottom:1px solid rgba(36,48,68,.7);vertical-align:top}
+    th{font-size:12px;color:var(--muted);text-align:left;position:sticky;top:0;background: rgba(15,23,42,.92);backdrop-filter: blur(8px)}
+    td{font-size:13px}
+    .status{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 9px;border-radius:999px;border:1px solid var(--border);
+      font-size:12px;color:var(--muted);
+      background: rgba(17,24,39,.6);
+      white-space:nowrap;
+    }
+    .dot{width:8px;height:8px;border-radius:99px;background: var(--muted)}
+    .dot.good{background: var(--good)}
+    .dot.warn{background: var(--warn)}
+    .dot.bad{background: var(--bad)}
+    .miniBtns{display:flex;gap:8px;flex-wrap:wrap}
+    .miniBtns .btn{padding:8px 10px;border-radius:10px;font-size:12px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+    .muted{color:var(--muted)}
+    .modalOverlay{
+      position:fixed;inset:0;background: rgba(0,0,0,.55);
+      display:none;align-items:center;justify-content:center;
+      padding:18px; z-index:100;
+    }
+    .modal{
+      width:min(980px, 100%);
+      border-radius:18px;border:1px solid var(--border);
+      background: rgba(17,24,39,.95);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal .mhead{
+      padding:14px 16px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background: rgba(15,23,42,.7);
+    }
+    .modal .mhead h3{margin:0;font-size:13px;font-weight:900}
+    .modal .mbody{padding:14px 16px;display:grid;grid-template-columns: 1fr 1fr;gap:14px}
+    @media (max-width: 980px){ .modal .mbody{grid-template-columns:1fr} }
+    .kvs{font-size:12px;color:var(--muted);line-height:1.45}
+    .toast{
+      position:fixed; right:16px; bottom:16px;
+      padding:12px 14px;border-radius:14px;
+      background: rgba(17,24,39,.95); border:1px solid var(--border);
+      box-shadow: var(--shadow);
+      display:none; max-width: 520px;
+      font-size:13px; color: var(--text);
+    }
+    .toast .tmuted{color:var(--muted); font-size:12px;margin-top:4px;line-height:1.35}
+    .small{font-size:12px}
+    .dangerBox{
+      border:1px solid rgba(251,113,133,.6);
+      background: rgba(251,113,133,.08);
+      padding:10px 12px;border-radius:14px;
+      color: var(--text);
+      line-height:1.45;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">
+          <h1>Wilhelm Outreach Console</h1>
+          <div>CSV → table → AI draft → preview → send (thread-safe via backend)</div>
+        </div>
+      </div>
+      <div class="controls">
+        <span class="pill" id="statPill">🧾 0 contacts loaded</span>
+        <button class="btn" id="btnDownloadSample">Download sample CSV</button>
+        <button class="btn primary" id="btnLoadCsv">Load CSV</button>
+        <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" />
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="head">
+          <div>
+            <h2>Contacts table</h2>
+            <div class="sub">Each row can generate a draft + send (manual)</div>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnGenerateAll">Generate drafts (selected)</button>
+            <button class="btn good" id="btnSendAll">Send (selected)</button>
+          </div>
+        </div>
+        <div class="body">
+          <div class="dangerBox small">
+            ⚠️ Security note: never put OpenAI keys in this file. Use a backend proxy endpoints:
+            <span class="mono">POST /api/generate</span> and <span class="mono">POST /api/send</span>.
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="tableWrap">
+            <table id="contactsTable">
+              <thead>
+                <tr>
+                  <th style="width:36px"><input type="checkbox" id="selectAll" /></th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Company</th>
+                  <th>LinkedIn</th>
+                  <th>Template</th>
+                  <th>Status</th>
+                  <th style="min-width:310px">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="contactsTbody">
+                <tr><td colspan="8" class="muted">Load a CSV to begin 🙂</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="hint">
+            CSV columns supported (case-insensitive): <span class="mono">name, email, company, linkedin, impressive</span>.
+            If <span class="mono">linkedin</span> exists → Type 2 template can be used. If not → Type 1 template only.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="head">
+          <div>
+            <h2>Settings</h2>
+            <div class="sub">Keep it strict + deliverability-friendly</div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="field">
+            <label>Backend base URL (optional)</label>
+            <input type="text" id="backendUrl" placeholder="e.g., http://localhost:8787" />
+            <div class="hint">
+              If empty, it calls relative URLs <span class="mono">/api/generate</span> and <span class="mono">/api/send</span>.
+              If you haven’t built backend yet, drafts will still render using local placeholders (Preview Only mode).
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="row">
+            <div class="field">
+              <label>Timezone label (used in subject/body placeholders)</label>
+              <input type="text" id="tzLabel" value="CET" />
+            </div>
+            <div class="field">
+              <label>Meeting options (comma-separated)</label>
+              <input type="text" id="meetingOptions" value="Tuesday ~10:00, Wednesday ~14:30" />
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="field">
+            <label>Template (Type 2: with impressive sentence)</label>
+            <textarea id="tplType2"></textarea>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="field">
+            <label>Template (Type 1: basic)</label>
+            <textarea id="tplType1"></textarea>
+          </div>
+
+          <div class="hint">
+            These templates are treated as “locked structure”. AI is only supposed to fill placeholders.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="mhead">
+        <h3 id="modalTitle">Draft preview</h3>
+        <div class="miniBtns">
+          <button class="btn" id="btnCopyDraft">Copy</button>
+          <button class="btn bad" id="btnCloseModal">Close</button>
+        </div>
+      </div>
+      <div class="mbody">
+        <div>
+          <label>Subject</label>
+          <input type="text" id="draftSubject" />
+          <div style="height:12px"></div>
+          <label>Body</label>
+          <textarea id="draftBody"></textarea>
+          <div class="hint">
+            You can manually tweak before sending (optional). Manual touch often improves deliverability 🙂✅
+          </div>
+        </div>
+        <div>
+          <div class="kvs" id="draftMeta"></div>
+          <div style="height:12px"></div>
+          <button class="btn good" id="btnSendFromModal">Send this email</button>
+          <div class="hint muted" style="margin-top:10px">
+            Sending requires a backend endpoint <span class="mono">POST /api/send</span> with SMTP/Gmail configured.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // -------------------------
+    // Templates exactly as provided (with placeholders)
+    // -------------------------
+    const DEFAULT_TPL_TYPE2 = `Good morning [{{name}}],
+
+[{{impressive_sentence}}]
+
+I’m Carl from Wilhelm Agencies. We help a few Spanish agents with the same frustration: too much time spent qualifying leads that go nowhere, taking away from the clients who actually matter.
+
+We only pass on calendar bookings with serious, pre-qualified buyers.
+
+One partner sold €1.2 M in 3 weeks. Another is progressing a €5 M prospect - both from leads we brought in.
+
+You can hear what a few agencies say here if you’re curious:
+https://wilhelm-agencies.carrd.co
+
+If this could meaningfully make your days easier and more productive, I’d be happy to explain briefly (15 min).
+
+I’m free:
+•  [{{t1}} {{tz}}]
+•  [{{t2}} {{tz}}]
+•  or just tell me what works for you - I’m flexible.
+
+Best regards,
+Carl Wilhelm
+Founder & CEO, Wilhelm Agencies
+Website: https://wilhelm-agencies.com
+Instagram: https://www.instagram.com/wilhelm_agencies`;
+
+    const DEFAULT_SUBJECT_TYPE2 = `[{{name}}] – Carl Wilhelm (quick thought for [{{company}}])`;
+
+    const DEFAULT_TPL_TYPE1 = `Good morning {{name}},
+
+The real estate market is moving quickly and with huge competition - My company is here to support.
+
+I’m a Swedish buyer generation specialist working closely with real estate agencies on the Costa del Sol market to fill calendars with qualified buyer appointments. We book consultations directly into your agent’s calendars, so you can focus on closing deals instead of wasting time on unserious buyers.
+
+Our latest project was together with Engel & Völkers.
+
+Would you be interested to know more about the range of services I can offer and how we can work together? If so, contact me for a “get to know each other” meeting.
+
+Kind regards,
+Carl Wilhelm Stjärnhimmel`;
+
+    const DEFAULT_SUBJECT_TYPE1 = `Real estate info`;
+
+    // -------------------------
+    // Minimal CSV parsing (good enough for standard CSV; supports quoted values)
+    // -------------------------
+    function parseCSV(text){
+      const rows = [];
+      let i = 0, field = '', row = [];
+      let inQuotes = false;
+
+      while(i < text.length){
+        const c = text[i];
+
+        if(inQuotes){
+          if(c === '"'){
+            if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+            inQuotes = false; i++; continue;
+          } else {
+            field += c; i++; continue;
+          }
+        } else {
+          if(c === '"'){ inQuotes = true; i++; continue; }
+          if(c === ','){ row.push(field); field = ''; i++; continue; }
+          if(c === '\n'){
+            row.push(field); field = '';
+            // ignore empty trailing lines
+            if(row.some(v => (v ?? '').toString().trim() !== '')) rows.push(row);
+            row = []; i++; continue;
+          }
+          if(c === '\r'){ i++; continue; }
+          field += c; i++; continue;
+        }
+      }
+      // last field
+      row.push(field);
+      if(row.some(v => (v ?? '').toString().trim() !== '')) rows.push(row);
+
+      if(rows.length === 0) return [];
+
+      const headers = rows[0].map(h => (h || '').trim().toLowerCase());
+      const out = [];
+
+      for(let r = 1; r < rows.length; r++){
+        const obj = {};
+        for(let c = 0; c < headers.length; c++){
+          obj[headers[c]] = (rows[r][c] ?? '').trim();
+        }
+        out.push(obj);
+      }
+      return out;
+    }
+
+    // -------------------------
+    // State
+    // -------------------------
+    let contacts = []; // each: { id, name, email, company, linkedin, impressive, templateMode, status, draft }
+    let selectedContactId = null;
+
+    // -------------------------
+    // DOM
+    // -------------------------
+    const el = (id) => document.getElementById(id);
+
+    const csvFile = el('csvFile');
+    const btnLoadCsv = el('btnLoadCsv');
+    const btnDownloadSample = el('btnDownloadSample');
+    const tbody = el('contactsTbody');
+    const statPill = el('statPill');
+    const selectAll = el('selectAll');
+
+    const backendUrl = el('backendUrl');
+    const tzLabel = el('tzLabel');
+    const meetingOptions = el('meetingOptions');
+
+    const tplType2 = el('tplType2');
+    const tplType1 = el('tplType1');
+
+    const btnGenerateAll = el('btnGenerateAll');
+    const btnSendAll = el('btnSendAll');
+
+    const modalOverlay = el('modalOverlay');
+    const btnCloseModal = el('btnCloseModal');
+    const btnCopyDraft = el('btnCopyDraft');
+    const btnSendFromModal = el('btnSendFromModal');
+    const draftSubject = el('draftSubject');
+    const draftBody = el('draftBody');
+    const draftMeta = el('draftMeta');
+    const modalTitle = el('modalTitle');
+
+    const toast = el('toast');
+
+    // Init templates in UI
+    tplType2.value = DEFAULT_TPL_TYPE2;
+    tplType1.value = DEFAULT_TPL_TYPE1;
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+    function uid(){
+      return Math.random().toString(16).slice(2) + Date.now().toString(16);
+    }
+
+    function showToast(title, detail=''){
+      toast.innerHTML = `<div><b>${escapeHtml(title)}</b></div>${detail ? `<div class="tmuted">${escapeHtml(detail)}</div>` : ''}`;
+      toast.style.display = 'block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> toast.style.display = 'none', 3600);
+    }
+
+    function escapeHtml(str){
+      return (str ?? '').toString().replace(/[&<>"']/g, (m)=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      }[m]));
+    }
+
+    function getBaseUrl(){
+      const v = backendUrl.value.trim();
+      return v ? v.replace(/\/+$/,'') : '';
+    }
+
+    function resolveTemplateMode(c){
+      // Type 2 allowed only if linkedin exists (reliable method would be your backend enrichment)
+      return (c.linkedin && c.linkedin.startsWith('http')) ? 'type2' : 'type1';
+    }
+
+    function statusBadge(status){
+      // statuses: loaded, draft, sent, failed, previewOnly
+      const map = {
+        loaded: {dot:'warn', text:'Loaded'},
+        draft: {dot:'good', text:'Draft ready'},
+        previewOnly: {dot:'warn', text:'Preview-only'},
+        sent: {dot:'good', text:'Sent'},
+        failed: {dot:'bad', text:'Failed'}
+      };
+      const s = map[status] || map.loaded;
+      return `<span class="status"><span class="dot ${s.dot}"></span>${s.text}</span>`;
+    }
+
+    function parseMeetingOptions(){
+      const parts = meetingOptions.value.split(',').map(s => s.trim()).filter(Boolean);
+      const t1 = parts[0] || 'Tuesday ~10:00';
+      const t2 = parts[1] || 'Wednesday ~14:30';
+      return { t1, t2 };
+    }
+
+    function fillPlaceholders(text, vars){
+      // supports [{{x}}] and {{x}} for convenience
+      return text
+        .replace(/\[\{\{(\w+)\}\}\]/g, (_,k)=> (vars[k] ?? '').toString())
+        .replace(/\{\{(\w+)\}\}/g, (_,k)=> (vars[k] ?? '').toString());
+    }
+
+    function buildLocalDraft(contact){
+      const { t1, t2 } = parseMeetingOptions();
+      const vars = {
+        name: contact.name || 'there',
+        company: contact.company || 'your company',
+        tz: tzLabel.value.trim() || 'CET',
+        t1, t2,
+        impressive_sentence: contact.impressive
+          ? contact.impressive
+          : `I’ve seen what you’ve built at ${contact.company || 'your company'}. It’s really impressive.`
+      };
+
+      if(contact.templateMode === 'type2'){
+        return {
+          subject: fillPlaceholders(DEFAULT_SUBJECT_TYPE2, vars),
+          body: fillPlaceholders(tplType2.value, vars)
+        };
+      }
+      return {
+        subject: DEFAULT_SUBJECT_TYPE1,
+        body: fillPlaceholders(tplType1.value, vars)
+      };
+    }
+
+    // -------------------------
+    // Backend calls (safe: no keys in frontend)
+    // -------------------------
+    async function apiGenerateDraft(contact){
+      const base = getBaseUrl();
+      const url = (base ? base : '') + '/api/generate';
+
+      const { t1, t2 } = parseMeetingOptions();
+      const payload = {
+        contact: {
+          name: contact.name,
+          email: contact.email,
+          company: contact.company,
+          linkedin: contact.linkedin,
+          impressive: contact.impressive
+        },
+        templateMode: contact.templateMode, // type1 or type2
+        templates: {
+          type2: tplType2.value,
+          type1: tplType1.value,
+          subjectType2: DEFAULT_SUBJECT_TYPE2,
+          subjectType1: DEFAULT_SUBJECT_TYPE1
+        },
+        meeting: { t1, t2, tz: tzLabel.value.trim() || 'CET' },
+        rules: {
+          // your backend should enforce: no structure changes except inserts
+          lockedStructure: true
+        }
+      };
+
+      const res = await fetch(url, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`Generate failed: ${res.status} ${txt}`.slice(0, 500));
+      }
+      return await res.json(); // expected { subject, body }
+    }
+
+    async function apiSendEmail(contact, draft){
+      const base = getBaseUrl();
+      const url = (base ? base : '') + '/api/send';
+
+      const payload = {
+        to: contact.email,
+        name: contact.name,
+        subject: draft.subject,
+        body: draft.body,
+        // thread handling: backend should use messageId / In-Reply-To if needed
+        threadId: contact.threadId || null,
+        meta: {
+          contactId: contact.id,
+          templateMode: contact.templateMode
+        }
+      };
+
+      const res = await fetch(url, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`Send failed: ${res.status} ${txt}`.slice(0, 500));
+      }
+      return await res.json(); // expected { ok:true, messageId, threadId }
+    }
+
+    // -------------------------
+    // Render table
+    // -------------------------
+    function render(){
+      statPill.textContent = `🧾 ${contacts.length} contacts loaded`;
+
+      if(contacts.length === 0){
+        tbody.innerHTML = `<tr><td colspan="8" class="muted">Load a CSV to begin 🙂</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = contacts.map(c => {
+        const safeLinked = c.linkedin ? `<a href="${escapeHtml(c.linkedin)}" target="_blank" rel="noopener" class="mono">${escapeHtml(c.linkedin)}</a>` : `<span class="muted">—</span>`;
+        const tplLabel = c.templateMode === 'type2' ? 'Type 2' : 'Type 1';
+
+        return `
+          <tr>
+            <td><input type="checkbox" class="rowSelect" data-id="${c.id}" ${c.selected ? 'checked':''}/></td>
+            <td>${escapeHtml(c.name || '—')}</td>
+            <td class="mono">${escapeHtml(c.email || '—')}</td>
+            <td>${escapeHtml(c.company || '—')}</td>
+            <td>${safeLinked}</td>
+            <td>
+              <select class="tplSelect" data-id="${c.id}">
+                <option value="type1" ${c.templateMode==='type1'?'selected':''}>Type 1</option>
+                <option value="type2" ${c.templateMode==='type2'?'selected':''} ${c.linkedin ? '' : 'disabled'}>Type 2 (needs LinkedIn)</option>
+              </select>
+            </td>
+            <td>${statusBadge(c.status)}</td>
+            <td>
+              <div class="miniBtns">
+                <button class="btn" data-act="generate" data-id="${c.id}">Generate</button>
+                <button class="btn primary" data-act="preview" data-id="${c.id}">Preview</button>
+                <button class="btn good" data-act="send" data-id="${c.id}">Send</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // attach listeners
+      document.querySelectorAll('.tplSelect').forEach(sel => {
+        sel.addEventListener('change', (e)=>{
+          const id = e.target.getAttribute('data-id');
+          const c = contacts.find(x => x.id === id);
+          if(!c) return;
+          c.templateMode = e.target.value;
+          c.status = c.draft ? 'draft' : 'loaded';
+          render();
+        });
+      });
+
+      document.querySelectorAll('.rowSelect').forEach(chk => {
+        chk.addEventListener('change', (e)=>{
+          const id = e.target.getAttribute('data-id');
+          const c = contacts.find(x => x.id === id);
+          if(!c) return;
+          c.selected = e.target.checked;
+        });
+      });
+
+      document.querySelectorAll('button[data-act]').forEach(btn => {
+        btn.addEventListener('click', async (e)=>{
+          const act = e.target.getAttribute('data-act');
+          const id = e.target.getAttribute('data-id');
+          const c = contacts.find(x => x.id === id);
+          if(!c) return;
+
+          try{
+            if(act === 'generate'){
+              await generateDraftFor(c);
+            } else if(act === 'preview'){
+              await openPreview(c);
+            } else if(act === 'send'){
+              await sendFor(c);
+            }
+          }catch(err){
+            c.status = 'failed';
+            showToast('❌ Error', err.message || String(err));
+            render();
+          }
+        });
+      });
+    }
+
+    // -------------------------
+    // Draft generation / preview / send
+    // -------------------------
+    async function generateDraftFor(contact){
+      // Try backend generation first; fallback to local draft if backend missing/fails.
+      contact.status = 'loaded';
+      render();
+
+      const hasBackend = true; // we still try; if it fails we fallback
+      if(hasBackend){
+        try{
+          const out = await apiGenerateDraft(contact);
+          if(out && out.subject && out.body){
+            contact.draft = { subject: out.subject, body: out.body };
+            contact.status = 'draft';
+            showToast('✅ Draft generated', `${contact.name || contact.email}`);
+            render();
+            return;
+          }
+          throw new Error('Backend returned invalid draft');
+        }catch(e){
+          // fallback to local
+          contact.draft = buildLocalDraft(contact);
+          contact.status = 'previewOnly';
+          showToast('⚠️ Preview-only draft', 'Backend generate not reachable; using local placeholder draft.');
+          render();
+          return;
+        }
+      }
+    }
+
+    async function openPreview(contact){
+      if(!contact.draft){
+        await generateDraftFor(contact);
+      }
+      selectedContactId = contact.id;
+
+      modalTitle.textContent = `Draft preview — ${contact.name || contact.email}`;
+      draftSubject.value = contact.draft.subject || '';
+      draftBody.value = contact.draft.body || '';
+
+      draftMeta.innerHTML = `
+        <div class="kvs">
+          <div><b>To:</b> <span class="mono">${escapeHtml(contact.email || '')}</span></div>
+          <div><b>Name:</b> ${escapeHtml(contact.name || '')}</div>
+          <div><b>Company:</b> ${escapeHtml(contact.company || '')}</div>
+          <div><b>Template:</b> ${contact.templateMode === 'type2' ? 'Type 2 (with impressive sentence)' : 'Type 1 (basic)'}</div>
+          <div><b>Status:</b> ${escapeHtml(contact.status)}</div>
+          <div style="margin-top:10px;color:var(--muted)">
+            Tip: add a tiny human tweak before sending. Even one sentence helps deliverability 🙂📩
+          </div>
+        </div>
+      `;
+
+      modalOverlay.style.display = 'flex';
+    }
+
+    async function sendFor(contact){
+      if(!contact.draft){
+        await generateDraftFor(contact);
+      }
+      // If preview-only, do not send (no backend)
+      if(contact.status === 'previewOnly'){
+        showToast('⚠️ Cannot send (Preview Only)', 'Hook up /api/send backend to send emails.');
+        return;
+      }
+      if(!contact.draft?.subject || !contact.draft?.body){
+        throw new Error('No draft available to send');
+      }
+
+      // Send via backend
+      const out = await apiSendEmail(contact, contact.draft);
+      if(out && out.ok){
+        contact.status = 'sent';
+        if(out.threadId) contact.threadId = out.threadId;
+        showToast('✅ Sent', `${contact.email} (${out.messageId || 'ok'})`);
+      } else {
+        contact.status = 'failed';
+        showToast('❌ Send failed', 'Backend returned non-ok response');
+      }
+      render();
+    }
+
+    // Modal actions
+    btnCloseModal.addEventListener('click', ()=> modalOverlay.style.display = 'none');
+    modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) modalOverlay.style.display = 'none'; });
+
+    btnCopyDraft.addEventListener('click', async ()=>{
+      const subject = draftSubject.value;
+      const body = draftBody.value;
+      const text = `Subject: ${subject}\n\n${body}`;
+      await navigator.clipboard.writeText(text);
+      showToast('📋 Copied', 'Subject + body copied to clipboard');
+    });
+
+    btnSendFromModal.addEventListener('click', async ()=>{
+      const c = contacts.find(x => x.id === selectedContactId);
+      if(!c) return;
+
+      c.draft = { subject: draftSubject.value, body: draftBody.value };
+      // if preview-only, block
+      if(c.status === 'previewOnly'){
+        showToast('⚠️ Cannot send (Preview Only)', 'Hook up /api/send backend to send emails.');
+        return;
+      }
+      try{
+        await sendFor(c);
+        modalOverlay.style.display = 'none';
+      }catch(err){
+        c.status = 'failed';
+        showToast('❌ Error', err.message || String(err));
+        render();
+      }
+    });
+
+    // -------------------------
+    // Bulk actions
+    // -------------------------
+    btnGenerateAll.addEventListener('click', async ()=>{
+      const selected = contacts.filter(c => c.selected);
+      if(selected.length === 0){
+        showToast('Select some rows 🙂', 'Tick the checkboxes then run bulk actions.');
+        return;
+      }
+      for(const c of selected){
+        try{ await generateDraftFor(c); }catch(e){ c.status='failed'; }
+      }
+      render();
+      showToast('✅ Bulk generate done', `${selected.length} processed`);
+    });
+
+    btnSendAll.addEventListener('click', async ()=>{
+      const selected = contacts.filter(c => c.selected);
+      if(selected.length === 0){
+        showToast('Select some rows 🙂', 'Tick the checkboxes then run bulk actions.');
+        return;
+      }
+      for(const c of selected){
+        try{ await sendFor(c); }catch(e){ c.status='failed'; }
+      }
+      render();
+      showToast('📩 Bulk send done', `${selected.length} processed`);
+    });
+
+    // select all
+    selectAll.addEventListener('change', (e)=>{
+      const checked = e.target.checked;
+      contacts.forEach(c => c.selected = checked);
+      render();
+    });
+
+    // -------------------------
+    // CSV load + sample
+    // -------------------------
+    btnLoadCsv.addEventListener('click', ()=> csvFile.click());
+
+    csvFile.addEventListener('change', async (e)=>{
+      const file = e.target.files?.[0];
+      if(!file) return;
+
+      const text = await file.text();
+      const rows = parseCSV(text);
+
+      if(rows.length === 0){
+        showToast('❌ CSV empty / invalid', 'Could not parse rows.');
+        return;
+      }
+
+      // normalize columns
+      contacts = rows.map(r => {
+        const name = r.name || r.firstname || r.fullname || '';
+        const email = r.email || r.mail || '';
+        const company = r.company || r.companyname || r.organization || '';
+        const linkedin = r.linkedin || r.linkedinurl || r.linkedin_url || '';
+        const impressive = r.impressive || r.impressive_sentence || '';
+
+        const c = {
+          id: uid(),
+          name, email, company, linkedin, impressive,
+          templateMode: 'type1',
+          status: 'loaded',
+          draft: null,
+          selected: false,
+          threadId: null
+        };
+        c.templateMode = resolveTemplateMode(c);
+        return c;
+      });
+
+      render();
+      showToast('✅ Loaded CSV', `${contacts.length} contacts`);
+      csvFile.value = '';
+    });
+
+    btnDownloadSample.addEventListener('click', ()=>{
+      const sample = [
+        'name,email,company,linkedin,impressive',
+        'Julien,julien@example.com,Sunset Hills,https://www.linkedin.com/in/julien-example,"I’ve seen what you’ve built at Sunset Hills - 20+ years focused on premium international buyers in Sierra Blanca and the Golden Mile. It’s really impressive."',
+        'Ambros,ambros@example.com,,,'
+      ].join('\\n');
+
+      const blob = new Blob([sample], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'wilhelm_contacts_sample.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('⬇️ Sample CSV downloaded', 'Use it as a template for your imports');
+    });
+
+    // Initial render
+    render();
+
+    // -------------------------
+    // IMPORTANT: Backend expectations (for your dev)
+    // -------------------------
+    // /api/generate should:
+    // - enforce lockedStructure = true
+    // - if templateMode=type2 and linkedin exists, generate impressive_sentence if missing
+    // - return { subject, body } WITHOUT modifying the template structure beyond placeholder inserts
+    //
+    // /api/send should:
+    // - send from your custom domain
+    // - store messageId/threadId
+    // - return { ok:true, messageId, threadId }
+  </script>
+</body>
+</html>
